@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { Audio, AVPlaybackStatus } from 'expo-av';
@@ -40,6 +40,11 @@ export default function LessonScreen() {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Web audio recording state
+  const [webRecorder, setWebRecorder] = useState<any>(null);
+  const [webAudioURL, setWebAudioURL] = useState<string | null>(null);
+  const [webAudioBlob, setWebAudioBlob] = useState<Blob | null>(null);
+
   useEffect(() => {
     Speech.speak(vocabCards[page].word, { language: 'es-ES' });
     setPronunciationResult(null);
@@ -51,6 +56,13 @@ export default function LessonScreen() {
     if (sound) {
       sound.unloadAsync();
       setSound(null);
+    }
+    if (webAudioURL) {
+      URL.revokeObjectURL(webAudioURL);
+      setWebAudioURL(null);
+    }
+    if (webAudioBlob) {
+      setWebAudioBlob(null);
     }
   }, [page]);
 
@@ -92,6 +104,34 @@ export default function LessonScreen() {
     }
   };
 
+  // Start recording (web)
+  const startWebRecording = async () => {
+    setWebAudioURL(null);
+    setWebAudioBlob(null);
+    const stream = await (navigator.mediaDevices as any).getUserMedia({ audio: true });
+    const mediaRecorder = new (window as any).MediaRecorder(stream);
+    let chunks: BlobPart[] = [];
+    mediaRecorder.ondataavailable = (e: any) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      setWebAudioBlob(blob);
+      setWebAudioURL(URL.createObjectURL(blob));
+    };
+    mediaRecorder.start();
+    setWebRecorder(mediaRecorder);
+    setIsRecording(true);
+  };
+
+  // Stop recording (web)
+  const stopWebRecording = () => {
+    if (webRecorder) {
+      webRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
   // Extract a simple waveform (amplitude bar graph) from the audio file
   const extractWaveform = async (uri: string) => {
     // This is a placeholder: Expo does not provide direct PCM access, so we fake a waveform
@@ -121,6 +161,31 @@ export default function LessonScreen() {
       await newSound.playAsync();
     } catch (err) {
       setError('Failed to play recording.');
+    }
+  };
+
+  // Upload and assess (web)
+  const uploadAndAssessWebAudio = async () => {
+    if (!webAudioBlob) return;
+    console.log('Uploading audio for assessment', webAudioBlob, vocabCards[page].word);
+    const formData = new FormData();
+    formData.append('audio', webAudioBlob, 'recording.webm');
+    formData.append('referenceText', vocabCards[page].word);
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('http://localhost:4000/api/pronunciation-assessment-upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await res.json();
+      // Parse and display result as you do for native
+      setPronunciationResult(result.NBest?.[0]?.PronScore ? `Score: ${result.NBest[0].PronScore}` : 'No score returned');
+      // ...parse phoneme feedback, etc.
+    } catch (e: any) {
+      setError(e.message || 'Error scoring pronunciation');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -274,6 +339,14 @@ export default function LessonScreen() {
             </TouchableOpacity>
           </View>
         )}
+        {Platform.OS === 'web' && webAudioURL && (
+          <View style={{ alignItems: 'center', marginTop: 8 }}>
+            <audio src={webAudioURL} controls />
+            <TouchableOpacity style={styles.playBtn} onPress={uploadAndAssessWebAudio}>
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Assess</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       {/* Bottom controls */}
@@ -283,7 +356,13 @@ export default function LessonScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.micBtn, isRecording && { backgroundColor: '#FFD166' }]}
-          onPress={isRecording ? stopRecording : startRecording}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              isRecording ? stopWebRecording() : startWebRecording();
+            } else {
+              isRecording ? stopRecording() : startRecording();
+            }
+          }}
         >
           <Ionicons name={isRecording ? 'stop' : 'mic'} size={32} color="#fff" />
         </TouchableOpacity>
@@ -294,7 +373,6 @@ export default function LessonScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f7f3ec', alignItems: 'center' },
   topBar: {
@@ -480,3 +558,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+

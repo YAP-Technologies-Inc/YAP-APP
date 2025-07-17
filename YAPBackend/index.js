@@ -13,6 +13,12 @@ const db = new Pool({
   port: 5432,
 });
 const bcrypt = require('bcryptjs'); // Add at the top if you want to hash passwords
+const { assessPronunciation } = require('./azurePronunciation');
+const multer = require('multer');
+const ffmpeg = require('fluent-ffmpeg');
+const fs = require('fs');
+const path = require('path');
+const upload = multer({ dest: 'uploads/' });
 
 const app = express();
 app.use(cors());
@@ -120,6 +126,54 @@ app.get('/api/profile/:userId', async (req, res) => {
   } catch (err) {
     console.error('Profile fetch error:', err);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Pronunciation Assessment Endpoint
+app.post('/api/pronunciation-assessment', async (req, res) => {
+  try {
+    const { audioPath, referenceText } = req.body;
+    if (!audioPath || !referenceText) {
+      return res.status(400).json({ error: 'audioPath and referenceText are required.' });
+    }
+    const result = await assessPronunciation(audioPath, referenceText);
+    res.json(result);
+  } catch (err) {
+    console.error('Pronunciation assessment error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/pronunciation-assessment-upload', upload.single('audio'), async (req, res) => {
+  try {
+    const { referenceText } = req.body;
+    if (!req.file || !referenceText) {
+      return res.status(400).json({ error: 'audio and referenceText are required.' });
+    }
+    const webmPath = req.file.path;
+    const wavPath = webmPath + '.wav';
+
+    // Convert webm to wav (16kHz mono)
+    await new Promise((resolve, reject) => {
+      ffmpeg(webmPath)
+        .audioChannels(1)
+        .audioFrequency(16000)
+        .toFormat('wav')
+        .on('end', resolve)
+        .on('error', reject)
+        .save(wavPath);
+    });
+
+    // Call your existing assessment function
+    const result = await assessPronunciation(wavPath, referenceText);
+
+    // Clean up files
+    fs.unlinkSync(webmPath);
+    fs.unlinkSync(wavPath);
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
