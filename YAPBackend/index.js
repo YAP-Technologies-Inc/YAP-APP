@@ -1,0 +1,126 @@
+const express = require('express');
+const cors = require('cors');
+const flowglad = require('@flowglad/server');
+const bip39 = require('bip39');
+const { Wallet } = require('ethers');
+const crypto = require('crypto');
+const { Pool } = require('pg');
+const db = new Pool({
+  user: 'yapuser',
+  host: 'localhost',
+  database: 'yapdb',
+  password: '1234', // use your actual password
+  port: 5432,
+});
+const bcrypt = require('bcryptjs'); // Add at the top if you want to hash passwords
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Set your Flowglad secret key (from your dashboard)
+flowglad.secretKey = process.env.FLOWGLAD_SECRET_KEY;
+
+// Example endpoint to create a payment session
+app.post('/api/create-payment-session', async (req, res) => {
+  try {
+    // You may want to get amount, user info, etc. from req.body
+    const session = await flowglad.createSession({
+      amount: 1000, // e.g., $10.00
+      currency: 'usd',
+      // ...other required fields
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Demo signup endpoint for mobile app
+app.post('/api/auth/secure-signup', async (req, res) => {
+  try {
+    console.log('Received signup request:', req.body);
+    const { name, email, password, language_to_learn, native_language, encrypted_mnemonic, sei_address, eth_address } = req.body;
+    if (!name || !email || !password || !language_to_learn || !native_language) {
+      console.error('Missing required fields:', req.body);
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+    // Hash the password with bcrypt
+    const password_hash = await bcrypt.hash(password, 10);
+    const userId = crypto.randomBytes(32).toString('hex');
+    await db.query(
+      `INSERT INTO users (user_id, name, email, password_hash, language_to_learn, native_language, sei_address, eth_address, encrypted_mnemonic)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [userId, name, email, password_hash, language_to_learn, native_language, sei_address, eth_address, encrypted_mnemonic]
+    );
+    res.json({
+      success: true,
+      userId,
+      token: crypto.randomBytes(32).toString('hex'),
+      sei_address,
+      eth_address,
+      encrypted_mnemonic,
+      message: 'Secure wallet account created and saved to DB!',
+    });
+  } catch (err) {
+    console.error('Signup error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Login endpoint
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required.' });
+    }
+
+    // Find user by email
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+    }
+    const user = result.rows[0];
+
+    // Use bcrypt to compare password
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+    }
+
+    // Generate a token (for demo, random string)
+    const token = crypto.randomBytes(32).toString('hex');
+
+    res.json({
+      success: true,
+      userId: user.user_id,
+      token,
+      name: user.name,
+      email: user.email,
+      sei_address: user.sei_address,
+      eth_address: user.eth_address,
+      message: 'Login successful!',
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await db.query('SELECT name, email, sei_address, eth_address FROM users WHERE user_id = $1', [userId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Profile fetch error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.listen(4000, () => console.log('Backend running on http://localhost:4000'));

@@ -1,0 +1,110 @@
+{
+    "course_metadata": {
+      "language": "Spanish",
+      "level": "A1",
+      "total_lessons": 320,
+      "lesson_duration": "5-10 minutes",
+      "primary_skill": "speaking",
+      "secondary_skill": "vocabulary",
+      "total_vocabulary": 750,
+      "course_hours": "40-60"
+    },
+    "lesson_template": {
+      "lesson_id": "string",
+      "title": "Sp. A1 - [lesson name]",
+      "duration_minutes": "5-10",
+      "speaking_focus": "primary",
+      "vocabulary_focus": "secondary",
+      "grammar_point": "integrated",
+      "cultural_note": "optional",
+      "prerequisite_lessons": ["array_of_lesson_ids"],
+      "learning_objectives": ["array_of_objectives"],
+      "vocabulary_items": ["array_of_words"],
+      "speaking_tasks": ["array_of_tasks"],
+      "assessment": "object"
+    },
+    "lessons": [
+      {
+        "lesson_id": "SPA1_001",
+        "title": "Sp. A1 - ¡Hola! Me llamo...",
+        "duration_minutes": 7,
+        "learning_objectives": [
+          "Introduce yourself with name",
+          "Greet others appropriately",
+          "Ask someone's name"
+        ],
+        "vocabulary_items": [
+          "hola", "buenos días", "buenas tardes", "buenas noches",
+          "me llamo", "¿cómo te llamas?", "mucho gusto", "encantado/a"
+        ],
+        "grammar_point": "Subject pronouns (yo, tú)",
+        "speaking_tasks": [
+          {
+            "type": "listen_and_repeat",
+            "content": "Hola, me llamo [nombre]. ¿Cómo te llamas?",
+            "variations": 3
+          },
+          {
+            "type": "role_play",
+            "scenario": "Meeting someone new",
+            "prompts": ["Greet", "Introduce yourself", "Ask their name"],
+            "expected_output": ["Hola", "Me llamo...", "¿Cómo te llamas?"]
+          },
+          {
+            "type": "pronunciation_practice",
+            "focus": "ll sound in 'llamo'",
+            "words": ["llamo", "llamas", "lluvia"]
+          }
+        ],
+        "assessment": {
+          "type": "speaking_production",
+          "task": "Record a self-introduction",
+          "criteria": ["Clear pronunciation", "Complete sentences", "Appropriate greeting"]
+        }
+      }
+      // ... (rest of your lessons, progression_notes, ai_generation_guidelines, implementation_notes)
+    ],
+    "progression_notes": {
+      "vocabulary_introduction": "5-7 new words per lesson",
+      "recycling": "Previous vocabulary appears in subsequent lessons",
+      "grammar_spiral": "Grammar points revisited with increasing complexity",
+      "speaking_focus": "70% speaking practice, 30% vocabulary/grammar support",
+      "cultural_integration": "Culture woven into speaking contexts"
+    },
+    "ai_generation_guidelines": {
+      "lesson_creation": {
+        "check_prerequisites": "Ensure learner has completed required lessons",
+        "vocabulary_limit": "Maximum 7 new words per lesson",
+        "speaking_priority": "Always prioritize oral production",
+        "scaffold_support": "Provide word banks and phrase supports",
+        "authentic_contexts": "Use real-world situations",
+        "error_tolerance": "Focus on communication over accuracy at A1"
+      },
+      "activity_types": {
+        "controlled_practice": ["listen_repeat", "substitution", "transformation"],
+        "guided_practice": ["role_play", "information_gap", "interviews"],
+        "free_practice": ["descriptions", "opinions", "personal_experiences"],
+        "pronunciation": ["minimal_pairs", "rhythm", "intonation"]
+      },
+      "assessment_focus": {
+        "fluency": "Ability to maintain simple conversation",
+        "task_completion": "Achieving communicative goal",
+        "pronunciation": "Intelligibility over perfection",
+        "confidence": "Willingness to speak"
+      }
+    },
+    "implementation_notes": {
+      "app_integration": {
+        "speech_recognition": "For pronunciation practice",
+        "conversation_ai": "For role-play partner",
+        "progress_tracking": "Record speaking samples",
+        "spaced_repetition": "For vocabulary review"
+      },
+      "gamification": {
+        "speaking_streaks": "Daily speaking goals",
+        "pronunciation_scores": "Intelligibility metrics",
+        "conversation_achievements": "Complete real-world tasks",
+        "vocabulary_collection": "Words used in speaking"
+      }
+    }
+  }

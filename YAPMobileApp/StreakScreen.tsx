@@ -1,0 +1,102 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+
+export default function StreakScreen() {
+  const navigation = useNavigation<any>();
+
+  const goToMainTabs = () => navigation.replace('MainTabs');
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Skip button */}
+        <TouchableOpacity style={styles.skipButton} onPress={goToMainTabs}>
+          <Text style={styles.skipButtonText}>Skip</Text>
+        </TouchableOpacity>
+        {/* Logo */}
+        <Image source={require('./assets/YAP.png')} style={styles.logo} resizeMode="contain" />
+        {/* Animal image */}
+        <View style={styles.imageContainer}>
+          <Image source={require('./assets/animal.png')} style={styles.animalImage} resizeMode="contain" />
+        </View>
+        {/* Text */}
+        <Text style={styles.title}>{'KEEP\nYOUR\nSTREAK'}</Text>
+        {/* Start button */}
+        <TouchableOpacity style={styles.startButton} onPress={goToMainTabs}>
+          <Text style={styles.startButtonText}>Start</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFC93C',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFC93C',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 24,
+    paddingHorizontal: 16,
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 24,
+    right: 24,
+    zIndex: 10,
+  },
+  skipButtonText: {
+    fontSize: 18,
+    color: '#2D1C1C',
+    fontWeight: '500',
+  },
+  logo: {
+    width: 70,
+    height: 40,
+    marginBottom: 8,
+    alignSelf: 'center',
+  },
+  imageContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  animalImage: {
+    width: 220,
+    height: 220,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2D1C1C',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 32,
+    lineHeight: 36,
+  },
+  startButton: {
+    position: 'absolute',
+    bottom: 40,
+    left: 24,
+    right: 24,
+    backgroundColor: '#2D1C1C',
+    borderRadius: 32,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  startButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+});
