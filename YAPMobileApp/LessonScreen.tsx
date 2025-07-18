@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import { useNavigation } from '@react-navigation/native';
 
 const vocabCards = [
   { word: 'Hola, ¿cómo estás?', desc: 'Hello, how are you?' },
@@ -49,6 +50,8 @@ export default function LessonScreen() {
   // New state for word-level feedback
   const [wordFeedback, setWordFeedback] = useState<any[]>([]);
   const [wavUrl, setWavUrl] = useState<string | null>(null);
+
+  const navigation: any = useNavigation();
 
   useEffect(() => {
     Speech.speak(vocabCards[page].word, { language: 'es-ES' });
@@ -564,6 +567,14 @@ export default function LessonScreen() {
             )}
           </View>
         )}
+        {page === totalPages - 1 && (
+          <TouchableOpacity
+            style={styles.finishButton}
+            onPress={() => navigation.navigate('HomeScreen')} // or 'MainTabs', etc.
+          >
+            <Text style={styles.finishButtonText}>Finish Lesson</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Bottom controls */}
@@ -783,6 +794,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     margin: 16,
     zIndex: 2,
+  },
+  finishButton: {
+    backgroundColor: '#FFD166',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 20,
+    width: '80%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  finishButtonText: {
+    color: '#2D1C1C',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
