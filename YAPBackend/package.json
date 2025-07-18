@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@cosmjs/proto-signing": "^0.34.0",
+    "@cosmjs/stargate": "^0.34.0",
     "@flowglad/server": "^0.10.17",
     "bcryptjs": "^3.0.2",
     "bip39": "^3.1.0",

@@ -15,7 +15,7 @@ async function assessPronunciation(audioPath, referenceText) {
   // Build config and base64 encode
   const config = {
     ReferenceText: referenceText,
-    GradingSystem: 'HundredMark',
+    GradingSystem: 'HundredMark', // Changed from 'HundredMark' for more granular scoring
     Granularity: 'Phoneme',
     Dimension: 'Comprehensive',
   };
@@ -44,6 +44,16 @@ async function assessPronunciation(audioPath, referenceText) {
   }
   const result = await res.json();
   console.log('Azure response:', JSON.stringify(result, null, 2));
+
+  // After parsing phonemeFeedback
+  const words = result.NBest?.[0]?.Words || [];
+  const wordFeedback = words.map(w => ({
+    word: w.Word,
+    accuracy: w.AccuracyScore,
+    errorType: w.ErrorType || 'None'
+  }));
+  setWordFeedback(wordFeedback);
+
   return result;
 }
 

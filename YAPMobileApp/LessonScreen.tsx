@@ -6,16 +6,16 @@ import { Audio, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 
 const vocabCards = [
-  { word: 'Hola', desc: 'Hello' },
-  { word: 'Adiós', desc: 'Goodbye' },
-  { word: 'Buenos días', desc: 'Good morning' },
-  { word: 'Buenas tardes', desc: 'Good afternoon' },
-  { word: 'Buenas noches', desc: 'Good evening/night' },
-  { word: '¿Cómo estás?', desc: 'How are you?' },
-  { word: 'Bien', desc: 'Good' },
-  { word: 'Mal', desc: 'Bad' },
-  { word: 'Más o menos', desc: 'So-so' },
-  { word: 'Por favor', desc: 'Please' },
+  { word: 'Hola, ¿cómo estás?', desc: 'Hello, how are you?' },
+  { word: 'Buenos días, señor', desc: 'Good morning, sir' },
+  { word: 'Buenas tardes, señora', desc: 'Good afternoon, ma\'am' },
+  { word: 'Buenas noches, amigos', desc: 'Good evening, friends' },
+  { word: '¿Cómo te llamas?', desc: 'What is your name?' },
+  { word: 'Mucho gusto en conocerte', desc: 'Nice to meet you' },
+  { word: 'Por favor, ayúdame', desc: 'Please help me' },
+  { word: 'Gracias por tu ayuda', desc: 'Thank you for your help' },
+  { word: '¿Dónde está el baño?', desc: 'Where is the bathroom?' },
+  { word: 'Hasta luego, amigo', desc: 'See you later, friend' },
 ];
 
 const AZURE_KEY = 'FyUzclVsQdkDSD7exFSMETzWWQToA9rRaQj52xsQIq9rYjSY1BmIJQQJ99BGACYeBjFXJ3w3AAAAACOGRJBi';
@@ -39,11 +39,15 @@ export default function LessonScreen() {
   const [waveform, setWaveform] = useState<number[]>([]);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioError, setAudioError] = useState(false);
 
   // Web audio recording state
   const [webRecorder, setWebRecorder] = useState<any>(null);
   const [webAudioURL, setWebAudioURL] = useState<string | null>(null);
   const [webAudioBlob, setWebAudioBlob] = useState<Blob | null>(null);
+
+  // New state for word-level feedback
+  const [wordFeedback, setWordFeedback] = useState<any[]>([]);
 
   useEffect(() => {
     Speech.speak(vocabCards[page].word, { language: 'es-ES' });
@@ -106,22 +110,61 @@ export default function LessonScreen() {
 
   // Start recording (web)
   const startWebRecording = async () => {
-    setWebAudioURL(null);
-    setWebAudioBlob(null);
-    const stream = await (navigator.mediaDevices as any).getUserMedia({ audio: true });
-    const mediaRecorder = new (window as any).MediaRecorder(stream);
-    let chunks: BlobPart[] = [];
-    mediaRecorder.ondataavailable = (e: any) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      setWebAudioBlob(blob);
-      setWebAudioURL(URL.createObjectURL(blob));
-    };
-    mediaRecorder.start();
-    setWebRecorder(mediaRecorder);
-    setIsRecording(true);
+    try {
+      setWebAudioURL(null);
+      setWebAudioBlob(null);
+      setError(null);
+      
+      // Request microphone access with better error handling
+      const stream = await (navigator.mediaDevices as any).getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000
+        } 
+      });
+      
+      const mediaRecorder = new (window as any).MediaRecorder(stream);
+      let chunks: BlobPart[] = [];
+      
+      mediaRecorder.ondataavailable = (e: any) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        console.log('Audio blob created:', blob.size, 'bytes');
+        if (blob.size > 0) {
+          setWebAudioBlob(blob);
+          const url = URL.createObjectURL(blob);
+          console.log('Audio URL created:', url);
+          setWebAudioURL(url);
+        } else {
+          setError('Recording failed - no audio data captured');
+        }
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach((track: any) => track.stop());
+      };
+      
+      mediaRecorder.onerror = (event: any) => {
+        console.error('MediaRecorder error:', event);
+        setError('Recording failed - MediaRecorder error');
+        stream.getTracks().forEach((track: any) => track.stop());
+      };
+      
+      mediaRecorder.start();
+      setWebRecorder(mediaRecorder);
+      setIsRecording(true);
+    } catch (err: any) {
+      console.error('Recording error:', err);
+      if (err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access and try again.');
+      } else if (err.name === 'NotFoundError') {
+        setError('No microphone found. Please check your microphone connection.');
+      } else {
+        setError(`Recording failed: ${err.message}`);
+      }
+    }
   };
 
   // Stop recording (web)
@@ -179,9 +222,59 @@ export default function LessonScreen() {
         body: formData,
       });
       const result = await res.json();
-      // Parse and display result as you do for native
-      setPronunciationResult(result.NBest?.[0]?.PronScore ? `Score: ${result.NBest[0].PronScore}` : 'No score returned');
-      // ...parse phoneme feedback, etc.
+      // Parse and display result with scaled scoring for more realistic feedback
+      const rawScore = result.NBest?.[0]?.PronScore;
+      if (rawScore !== undefined) {
+        // Scale down the score by 20% for more realistic assessment
+        const scaledScore = Math.round(rawScore * 0.8);
+        setPronunciationResult(`Score: ${scaledScore}/100`);
+        
+        // Parse phoneme feedback for detailed analysis
+        const words = result.NBest?.[0]?.Words || [];
+        let phonemes: any[] = [];
+        let tips: string[] = [];
+        
+        console.log('Parsing words:', words);
+        
+        words.forEach((w: any) => {
+          console.log('Word:', w.Word, 'Phonemes:', w.Phonemes);
+          if (w.Phonemes && Array.isArray(w.Phonemes)) {
+            w.Phonemes.forEach((p: any) => {
+              const phonemeData = {
+                phoneme: p.Phoneme || p.PhonemeId || 'Unknown',
+                accuracy: p.PronunciationAssessment?.AccuracyScore || p.AccuracyScore || '-',
+                errorType: p.PronunciationAssessment?.ErrorType || p.ErrorType || 'None',
+              };
+              phonemes.push(phonemeData);
+              
+              if (phonemeData.errorType && phonemeData.errorType !== 'None') {
+                tips.push(`Try to improve the sound "${phonemeData.phoneme}" (${phonemeData.errorType})`);
+              }
+            });
+          }
+        });
+        
+        // If no phonemes found, try alternative parsing
+        if (phonemes.length === 0 && words.length > 0) {
+          words.forEach((w: any) => {
+            if (w.Syllables && Array.isArray(w.Syllables)) {
+              w.Syllables.forEach((s: any) => {
+                phonemes.push({
+                  phoneme: s.Syllable || 'Syllable',
+                  accuracy: s.AccuracyScore || '-',
+                  errorType: s.ErrorType || 'None',
+                });
+              });
+            }
+          });
+        }
+        
+        console.log('Parsed phonemes:', phonemes);
+        setPhonemeFeedback(phonemes);
+        setSuggestion(tips.length > 0 ? tips.join('\n') : null);
+      } else {
+        setPronunciationResult('No score returned');
+      }
     } catch (e: any) {
       setError(e.message || 'Error scoring pronunciation');
     } finally {
@@ -222,29 +315,66 @@ export default function LessonScreen() {
         throw new Error(`Azure API error: ${text}`);
       }
       const result = await response.json();
-      // Main score
-      const score = result.NBest?.[0]?.PronunciationAssessment?.AccuracyScore;
-      setPronunciationResult(score !== undefined ? `Score: ${score}` : 'No score returned');
+      // Main score with scaled scoring for more realistic feedback
+      const rawScore = result.NBest?.[0]?.PronunciationAssessment?.AccuracyScore;
+      if (rawScore !== undefined) {
+        // Scale down the score by 20% for more realistic assessment
+        const scaledScore = Math.round(rawScore * 0.8);
+        setPronunciationResult(`Score: ${scaledScore}/100`);
+      } else {
+        setPronunciationResult('No score returned');
+      }
       // Phoneme-level feedback
       const words = result.NBest?.[0]?.Words || [];
       let phonemes: any[] = [];
       let tips: string[] = [];
+      
+      console.log('Native parsing words:', words);
+      
       words.forEach((w: any) => {
-        if (w.Phonemes) {
+        console.log('Native word:', w.Word, 'Phonemes:', w.Phonemes);
+        if (w.Phonemes && Array.isArray(w.Phonemes)) {
           w.Phonemes.forEach((p: any) => {
-            phonemes.push({
-              phoneme: p.Phoneme,
-              accuracy: p.PronunciationAssessment?.AccuracyScore,
-              errorType: p.PronunciationAssessment?.ErrorType,
-            });
-            if (p.PronunciationAssessment?.ErrorType && p.PronunciationAssessment.ErrorType !== 'None') {
-              tips.push(`Try to improve the sound "${p.Phoneme}" (${p.PronunciationAssessment.ErrorType})`);
+            const phonemeData = {
+              phoneme: p.Phoneme || p.PhonemeId || 'Unknown',
+              accuracy: p.PronunciationAssessment?.AccuracyScore || p.AccuracyScore || '-',
+              errorType: p.PronunciationAssessment?.ErrorType || p.ErrorType || 'None',
+            };
+            phonemes.push(phonemeData);
+            
+            if (phonemeData.errorType && phonemeData.errorType !== 'None') {
+              tips.push(`Try to improve the sound "${phonemeData.phoneme}" (${phonemeData.errorType})`);
             }
           });
         }
       });
+      
+      // If no phonemes found, try alternative parsing
+      if (phonemes.length === 0 && words.length > 0) {
+        words.forEach((w: any) => {
+          if (w.Syllables && Array.isArray(w.Syllables)) {
+            w.Syllables.forEach((s: any) => {
+              phonemes.push({
+                phoneme: s.Syllable || 'Syllable',
+                accuracy: s.AccuracyScore || '-',
+                errorType: s.ErrorType || 'None',
+              });
+            });
+          }
+        });
+      }
+      
+      console.log('Native parsed phonemes:', phonemes);
       setPhonemeFeedback(phonemes);
       setSuggestion(tips.length > 0 ? tips.join('\n') : null);
+
+      // Update wordFeedback state
+      const wordFeedbackArr = words.map((w: any) => ({
+        word: w.Word,
+        accuracy: w.AccuracyScore,
+        errorType: w.ErrorType || 'None',
+      }));
+      setWordFeedback(wordFeedbackArr);
     } catch (e: any) {
       setError(e.message || 'Error scoring pronunciation');
     } finally {
@@ -263,6 +393,9 @@ export default function LessonScreen() {
     return bytes;
   }
 
+  // Before the return statement, extract the numeric score for color-coding
+  const numericScore = pronunciationResult ? parseInt((pronunciationResult.match(/\d+/) || [])[0] || '0', 10) : null;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top bar */}
@@ -277,10 +410,10 @@ export default function LessonScreen() {
 
       {/* Single card view */}
       <View style={styles.cardStack}>
+        <Text style={styles.wordCountAbsolute}>
+          Words: {page + 1}/{totalPages < 10 ? `0${totalPages}` : totalPages}
+        </Text>
         <View style={[styles.card, styles.cardTop]}>
-          <Text style={styles.wordCount}>
-            Words: {page + 1}/{totalPages < 10 ? `0${totalPages}` : totalPages}
-          </Text>
           <Text style={styles.word}>{vocabCards[page].word}</Text>
           <Text style={styles.desc}>{vocabCards[page].desc}</Text>
         </View>
@@ -299,8 +432,9 @@ export default function LessonScreen() {
           </View>
         ) : (
           <>
-            {pronunciationResult && <Text style={{ color: '#2D1C1C', fontSize: 18, marginBottom: 4 }}>{pronunciationResult}</Text>}
-            {phonemeFeedback.length > 0 && (
+
+            {phonemeFeedback.length > 0 && phonemeFeedback[0].phoneme !== "Unknown" ? (
+              // Existing phoneme table
               <View style={styles.phonemeTable}>
                 <Text style={styles.phonemeTableTitle}>Phoneme Feedback</Text>
                 <View style={styles.phonemeTableHeader}>
@@ -316,6 +450,46 @@ export default function LessonScreen() {
                   </View>
                 ))}
               </View>
+            ) : (
+              // Word-level feedback
+              wordFeedback.length > 0 && (
+                <View style={styles.phonemeTable}>
+                  <Text style={styles.phonemeTableTitle}>Word Feedback</Text>
+                  <View style={styles.phonemeTableHeader}>
+                    <Text style={styles.phonemeCol}>Word</Text>
+                    <Text style={styles.phonemeCol}>Score</Text>
+                    <Text style={styles.phonemeCol}>Error</Text>
+                  </View>
+                  {wordFeedback.map((w, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.phonemeTableRow,
+                        { backgroundColor: i % 2 === 0 ? '#fffbe6' : '#f7f3ec' },
+                      ]}
+                    >
+                      <Text style={styles.phonemeCol}>{w.word}</Text>
+                      <Text
+                        style={[
+                          styles.phonemeCol,
+                          {
+                            color:
+                              w.accuracy >= 80
+                                ? '#27ae60'
+                                : w.accuracy >= 50
+                                ? '#f39c12'
+                                : '#e74c3c',
+                            fontWeight: 'bold',
+                          },
+                        ]}
+                      >
+                        {w.accuracy !== undefined ? w.accuracy : '-'}
+                      </Text>
+                      <Text style={styles.phonemeCol}>{w.errorType || '-'}</Text>
+                    </View>
+                  ))}
+                </View>
+              )
             )}
             {suggestion && (
               <View style={styles.suggestionBox}>
@@ -339,12 +513,35 @@ export default function LessonScreen() {
             </TouchableOpacity>
           </View>
         )}
-        {Platform.OS === 'web' && webAudioURL && (
+        {Platform.OS === 'web' && webAudioBlob && webAudioBlob.size > 1000 && webAudioURL && (
           <View style={{ alignItems: 'center', marginTop: 8 }}>
-            <audio src={webAudioURL} controls />
+            <audio
+              src={webAudioURL || undefined}
+              controls
+              onError={() => setAudioError(true)}
+              onPlay={() => setAudioError(false)}
+            />
+            {audioError && (
+              <Text style={{ color: '#e74c3c', textAlign: 'center', marginTop: 4 }}>
+                Unable to play your recording. Try recording again or check your microphone permissions.
+              </Text>
+            )}
             <TouchableOpacity style={styles.playBtn} onPress={uploadAndAssessWebAudio}>
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>Assess</Text>
             </TouchableOpacity>
+            {pronunciationResult && (
+              <Text
+                style={{
+                  color: numericScore !== null ? (numericScore >= 80 ? '#27ae60' : numericScore >= 50 ? '#f39c12' : '#e74c3c') : '#2D1C1C',
+                  fontSize: 32,
+                  fontWeight: 'bold',
+                  marginTop: 12,
+                  textAlign: 'center',
+                }}
+              >
+                {pronunciationResult}
+              </Text>
+            )}
           </View>
         )}
       </ScrollView>
@@ -556,6 +753,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
+  },
+  wordCountAbsolute: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    color: '#2D1C1C',
+    fontWeight: 'bold',
+    fontSize: 16,
+    margin: 16,
+    zIndex: 2,
   },
 });
 
