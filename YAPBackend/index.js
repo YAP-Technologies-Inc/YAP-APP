@@ -188,4 +188,5 @@ app.post('/api/pronunciation-assessment-upload', upload.single('audio'), async (
 
 app.use('/uploads', express.static('uploads'));
 
-app.listen(4000, () => console.log('Backend running on http://localhost:4000'));
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
