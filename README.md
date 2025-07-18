@@ -1,6 +1,6 @@
-# YAPWhole
+# YAP
 
-YAPWhole is a language learning app featuring a React Native/Expo mobile frontend and a Node.js/Express/PostgreSQL backend. It supports secure authentication, user profiles, interactive Spanish lessons, and pronunciation assessment using Azure's Speech API.
+YAP: the Talk‑to‑Earn language learning app featuring a React Native/Expo mobile frontend and a Node.js/Express/PostgreSQL backend. It supports secure authentication, user profiles, interactive Spanish lessons, and pronunciation assessment using Azure's Speech API.
 
 ## Features
 - User authentication (signup, login) with bcrypt password hashing
