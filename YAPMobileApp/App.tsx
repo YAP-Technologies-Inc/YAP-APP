@@ -28,6 +28,7 @@ export default function App() {
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="SignInScreen" component={SignInScreen} />
         <Stack.Screen name="LessonScreen" component={LessonScreen} />
+        <Stack.Screen name="HomeScreen" component={HomeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

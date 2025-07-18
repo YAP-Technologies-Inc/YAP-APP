@@ -147,7 +147,9 @@ export default function SignupScreen() {
 
       console.log('Signup payload:', payload);
 
-      const response = await fetch('http://localhost:4000/api/auth/secure-signup', {
+      const API_BASE_URL = "http://157.230.214.76:4000"; // or your domain
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/secure-signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

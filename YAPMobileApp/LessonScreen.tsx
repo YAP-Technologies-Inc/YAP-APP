@@ -11,11 +11,11 @@ const vocabCards = [
   { word: 'Buenos días, señor', desc: 'Good morning, sir' },
   { word: 'Buenas tardes, señora', desc: 'Good afternoon, ma\'am' },
   { word: 'Buenas noches, amigos', desc: 'Good evening, friends' },
-  { word: '¿Cómo te llamas?', desc: 'What is your name?' },
   { word: 'Mucho gusto en conocerte', desc: 'Nice to meet you' },
   { word: 'Por favor, ayúdame', desc: 'Please help me' },
   { word: 'Gracias por tu ayuda', desc: 'Thank you for your help' },
-  { word: '¿Dónde está el baño?', desc: 'Where is the bathroom?' },
+  { word: 'Te extraño', desc: 'I miss you' },
+  { word: 'Lo siento', desc: 'I am sorry' },
   { word: 'Hasta luego, amigo', desc: 'See you later, friend' },
 ];
 
@@ -54,7 +54,6 @@ export default function LessonScreen() {
   const navigation: any = useNavigation();
 
   useEffect(() => {
-    Speech.speak(vocabCards[page].word, { language: 'es-ES' });
     setPronunciationResult(null);
     setPhonemeFeedback([]);
     setSuggestion(null);
@@ -418,7 +417,7 @@ export default function LessonScreen() {
     <SafeAreaView style={styles.container}>
       {/* Top bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')}>
           <Ionicons name="close" size={28} color="#2D1C1C" />
         </TouchableOpacity>
         <View style={styles.progressBarBg}>
@@ -432,7 +431,7 @@ export default function LessonScreen() {
           Words: {page + 1}/{totalPages < 10 ? `0${totalPages}` : totalPages}
         </Text>
         <View style={[styles.card, styles.cardTop]}>
-          <Text style={styles.word}>{vocabCards[page].word}</Text>
+          <Text key={page} style={styles.word}>{vocabCards[page].word}</Text>
           <Text style={styles.desc}>{vocabCards[page].desc}</Text>
         </View>
       </View>
@@ -570,7 +569,7 @@ export default function LessonScreen() {
         {page === totalPages - 1 && (
           <TouchableOpacity
             style={styles.finishButton}
-            onPress={() => navigation.navigate('HomeScreen')} // or 'MainTabs', etc.
+            onPress={() => navigation.navigate('HomeScreen')}
           >
             <Text style={styles.finishButtonText}>Finish Lesson</Text>
           </TouchableOpacity>
@@ -579,8 +578,24 @@ export default function LessonScreen() {
 
       {/* Bottom controls */}
       <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlBtn} onPress={() => Speech.speak(vocabCards[page].word, { language: 'es-ES' })}>
-          <Ionicons name="refresh" size={28} color="#2D1C1C" />
+        {/* Speaker button (only plays audio) */}
+        <TouchableOpacity
+          style={styles.controlBtn}
+          onPress={async () => {
+            const voices = await Speech.getAvailableVoicesAsync();
+            // Try to find a high-quality Spanish voice
+            const spanishVoice = voices.find(
+              v => v.language.startsWith('es') && (v.quality === 'enhanced' || v.quality === 'default')
+            );
+            Speech.speak(vocabCards[page].word, {
+              language: 'es-ES',
+              voice: spanishVoice ? spanishVoice.identifier : undefined,
+              rate: 0.95, // slightly slower for clarity
+              pitch: 1.0,
+            });
+          }}
+        >
+          <Ionicons name="volume-high" size={28} color="#2D1C1C" />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.micBtn, isRecording && { backgroundColor: '#FFD166' }]}
@@ -594,8 +609,13 @@ export default function LessonScreen() {
         >
           <Ionicons name={isRecording ? 'stop' : 'mic'} size={32} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.controlBtn} onPress={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page === totalPages - 1}>
-          <Ionicons name="volume-high" size={28} color="#2D1C1C" />
+        {/* Arrow button (only updates page) */}
+        <TouchableOpacity
+          style={styles.controlBtn}
+          onPress={() => setPage(prev => Math.min(totalPages - 1, prev + 1))}
+          disabled={page === totalPages - 1}
+        >
+          <Ionicons name="arrow-forward" size={28} color="#2D1C1C" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
