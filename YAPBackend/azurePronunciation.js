@@ -52,7 +52,7 @@ async function assessPronunciation(audioPath, referenceText) {
     accuracy: w.AccuracyScore,
     errorType: w.ErrorType || 'None'
   }));
-  setWordFeedback(wordFeedback);
+  // setWordFeedback(wordFeedback); // This line was removed as per the edit hint.
 
   return result;
 }

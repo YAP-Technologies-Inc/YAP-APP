@@ -164,17 +164,28 @@ app.post('/api/pronunciation-assessment-upload', upload.single('audio'), async (
         .save(wavPath);
     });
 
+    // Log the size of the wav file
+    const wavStats = fs.statSync(wavPath);
+    console.log('Converted WAV file size:', wavStats.size, 'bytes');
+    if (wavStats.size < 1000) {
+      console.warn('WAV file is very small. Likely silent or invalid audio.');
+    }
+
     // Call your existing assessment function
     const result = await assessPronunciation(wavPath, referenceText);
 
-    // Clean up files
-    fs.unlinkSync(webmPath);
-    fs.unlinkSync(wavPath);
+    // Don't delete the wav file yet
+    // fs.unlinkSync(wavPath);
 
-    res.json(result);
+    res.json({
+      ...result,
+      wavUrl: `/uploads/${path.basename(wavPath)}`,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.use('/uploads', express.static('uploads'));
 
 app.listen(4000, () => console.log('Backend running on http://localhost:4000'));

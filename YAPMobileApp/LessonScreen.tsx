@@ -48,6 +48,7 @@ export default function LessonScreen() {
 
   // New state for word-level feedback
   const [wordFeedback, setWordFeedback] = useState<any[]>([]);
+  const [wavUrl, setWavUrl] = useState<string | null>(null);
 
   useEffect(() => {
     Speech.speak(vocabCards[page].word, { language: 'es-ES' });
@@ -68,6 +69,7 @@ export default function LessonScreen() {
     if (webAudioBlob) {
       setWebAudioBlob(null);
     }
+    setAudioError(false);
   }, [page]);
 
   // Start recording audio
@@ -114,24 +116,32 @@ export default function LessonScreen() {
       setWebAudioURL(null);
       setWebAudioBlob(null);
       setError(null);
-      
+
       // Request microphone access with better error handling
-      const stream = await (navigator.mediaDevices as any).getUserMedia({ 
+      const stream = await (navigator.mediaDevices as any).getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           sampleRate: 16000
-        } 
+        }
       });
-      
+      console.log('Stream tracks:', stream.getAudioTracks());
+
       const mediaRecorder = new (window as any).MediaRecorder(stream);
       let chunks: BlobPart[] = [];
-      
+
       mediaRecorder.ondataavailable = (e: any) => {
-        if (e.data.size > 0) chunks.push(e.data);
+        console.log('ondataavailable event:', e);
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data);
+          console.log('Chunk pushed, size:', e.data.size);
+        } else {
+          console.log('No data in this chunk');
+        }
       };
-      
+
       mediaRecorder.onstop = () => {
+        console.log('MediaRecorder stopped');
         const blob = new Blob(chunks, { type: 'audio/webm' });
         console.log('Audio blob created:', blob.size, 'bytes');
         if (blob.size > 0) {
@@ -145,14 +155,15 @@ export default function LessonScreen() {
         // Stop all tracks to release microphone
         stream.getTracks().forEach((track: any) => track.stop());
       };
-      
+
       mediaRecorder.onerror = (event: any) => {
         console.error('MediaRecorder error:', event);
         setError('Recording failed - MediaRecorder error');
         stream.getTracks().forEach((track: any) => track.stop());
       };
-      
+
       mediaRecorder.start();
+      console.log('MediaRecorder started');
       setWebRecorder(mediaRecorder);
       setIsRecording(true);
     } catch (err: any) {
@@ -274,6 +285,10 @@ export default function LessonScreen() {
         setSuggestion(tips.length > 0 ? tips.join('\n') : null);
       } else {
         setPronunciationResult('No score returned');
+      }
+      if (result.wavUrl) {
+        setWavUrl(`http://localhost:4000${result.wavUrl}`);
+        setAudioError(false); // Hide error if assessment succeeds
       }
     } catch (e: any) {
       setError(e.message || 'Error scoring pronunciation');
@@ -513,19 +528,24 @@ export default function LessonScreen() {
             </TouchableOpacity>
           </View>
         )}
-        {Platform.OS === 'web' && webAudioBlob && webAudioBlob.size > 1000 && webAudioURL && (
+        {Platform.OS === 'web' && webAudioURL && !audioError && (
+          <audio
+            src={webAudioURL || undefined}
+            controls
+            onError={() => setAudioError(true)}
+            onPlay={() => setAudioError(false)}
+          />
+        )}
+        {wavUrl && (
+          <audio src={wavUrl} controls />
+        )}
+        {audioError && !wavUrl && (
+          <Text style={{ color: '#e74c3c', textAlign: 'center', marginTop: 4 }}>
+            Unable to play your recording. Try recording again or check your microphone permissions.
+          </Text>
+        )}
+        {Platform.OS === 'web' && webAudioBlob && webAudioURL && (
           <View style={{ alignItems: 'center', marginTop: 8 }}>
-            <audio
-              src={webAudioURL || undefined}
-              controls
-              onError={() => setAudioError(true)}
-              onPlay={() => setAudioError(false)}
-            />
-            {audioError && (
-              <Text style={{ color: '#e74c3c', textAlign: 'center', marginTop: 4 }}>
-                Unable to play your recording. Try recording again or check your microphone permissions.
-              </Text>
-            )}
             <TouchableOpacity style={styles.playBtn} onPress={uploadAndAssessWebAudio}>
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>Assess</Text>
             </TouchableOpacity>
