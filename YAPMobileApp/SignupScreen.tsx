@@ -22,6 +22,14 @@ function randomArray(length: number): number[] {
   return Array.from({ length }, () => Math.floor(Math.random() * 256));
 }
 
+function showAlert(title, message) {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+}
+
 export default function SignupScreen() {
   const navigation: any = useNavigation();
   const [fullName, setFullName] = useState('');
@@ -39,26 +47,24 @@ export default function SignupScreen() {
     console.log('handleSignup called!');
     console.log('Form values:', { fullName, email, password: password ? '***' : '', confirmPassword: confirmPassword ? '***' : '', languageToLearn, nativeLanguage });
     
-    if (!fullName || !email || !password || !confirmPassword || !languageToLearn || !nativeLanguage) {
-      console.log('Validation failed - missing fields');
-      Alert.alert('Error', 'Please fill in all fields.');
-      return;
+    // Collect all validation errors
+    const errors = [];
+    if (!fullName) errors.push('Full Name is required.');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) errors.push('Email is required.');
+    else {
+      const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      if (!emailRegex.test(trimmedEmail)) errors.push('Please enter a valid email address.');
     }
-    // Email format validation
-    const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-    if (!emailRegex.test(email)) {
-      console.log('Validation failed - invalid email');
-      Alert.alert('Error', 'Please enter a valid email address.');
-      return;
-    }
-    if (password.length < 8) {
-      console.log('Validation failed - password too short');
-      Alert.alert('Error', 'Password must be at least 8 characters long.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      console.log('Validation failed - passwords do not match');
-      Alert.alert('Error', 'Passwords do not match.');
+    if (!languageToLearn) errors.push('Language to Learn is required.');
+    if (!nativeLanguage) errors.push('Native Language is required.');
+    if (!password) errors.push('Password is required.');
+    else if (password.length < 8) errors.push('Password must be at least 8 characters long.');
+    if (!confirmPassword) errors.push('Confirm Password is required.');
+    else if (password !== confirmPassword) errors.push('Passwords do not match.');
+
+    if (errors.length > 0) {
+      showAlert('Error', errors.join('\n'));
       return;
     }
 
@@ -71,7 +77,7 @@ export default function SignupScreen() {
     // Check if crypto modules are available
     if (!bip39 || !DirectSecp256k1HdWallet || !ethers || !CryptoJS) {
       console.log('Crypto modules not available, showing alert');
-      Alert.alert(
+      showAlert(
         'Development Build Required', 
         'This feature requires a development build with native modules. Please use the development build instead of Expo Go.'
       );
@@ -105,7 +111,7 @@ export default function SignupScreen() {
         encrypted_mnemonic = CryptoJS.AES.encrypt(mnemonic, password).toString();
       } catch (err) {
         console.log('Wallet generation error:', err);
-        Alert.alert(
+        showAlert(
           'Wallet Error',
           'There was a problem generating your wallet. Please make sure you are running a development build (not Expo Go), and that all dependencies are installed.'
         );
@@ -123,7 +129,7 @@ export default function SignupScreen() {
       // 6. Build the payload
       const payload = {
         name: fullName,
-        email,
+        email: trimmedEmail, // Use trimmedEmail here
         password,
         language_to_learn: languageToLearn,
         native_language: nativeLanguage,
@@ -168,18 +174,18 @@ export default function SignupScreen() {
             console.log('Failed to save token:', storageErr);
           }
         }
-        Alert.alert('Signup successful!', `Your SEI Address: ${sei_address}`);
+        showAlert('Signup successful!', `Your SEI Address: ${sei_address}`);
         setTimeout(() => {
           navigation.replace('MainTabs');
         }, 1000); // 1 second delay
         return;
       } else {
         // Show the backend error message if available
-        Alert.alert('Signup Failed', data.message || 'Please try again.');
+        showAlert('Signup Failed', data.message || 'Please try again.');
       }
     } catch (err) {
       console.log('Signup error:', err);
-      Alert.alert('Network Error', 'Please check your connection and try again.');
+      showAlert('Network Error', 'Please check your connection and try again.');
     } finally {
       setShowLoader(false);
     }
