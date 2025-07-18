@@ -437,14 +437,14 @@ export default function LessonScreen() {
       </View>
 
       {/* Pronunciation result and feedback */}
-      <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }}>
+      <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
         {loading ? (
           <ActivityIndicator size="small" color="#F85C5C" style={{ marginBottom: 8 }} />
         ) : error ? (
-          <View style={{ marginBottom: 8 }}>
-            <Text style={{ color: 'red', fontSize: 16 }}>{error}</Text>
-            <TouchableOpacity onPress={() => audioUri && sendToAzure(audioUri, vocabCards[page].word)} style={{ marginTop: 4 }}>
-              <Text style={{ color: '#2D1C1C', textDecorationLine: 'underline' }}>Retry</Text>
+          <View style={{ marginBottom: 8, alignItems: 'center' }}>
+            <Text style={{ color: '#e74c3c', fontSize: 15, textAlign: 'center', marginHorizontal: 16, marginBottom: 2 }}>{error}</Text>
+            <TouchableOpacity onPress={() => audioUri && sendToAzure(audioUri, vocabCards[page].word)} style={{ marginTop: 2 }}>
+              <Text style={{ color: '#2D1C1C', textDecorationLine: 'underline', fontSize: 14 }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -650,6 +650,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 32,
     width: '100%',
+    minHeight: 320,
   },
   card: {
     width: 320,
@@ -693,7 +694,7 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 48, // more space from bottom
     justifyContent: 'space-between',
     width: '80%',
   },
@@ -814,6 +815,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     margin: 16,
     zIndex: 2,
+    paddingRight: 8, // add space from card edge
   },
   finishButton: {
     backgroundColor: '#FFD166',

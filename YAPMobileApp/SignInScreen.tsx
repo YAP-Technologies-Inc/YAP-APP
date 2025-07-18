@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from './utils/storage';
 
 export default function SignInScreen() {
   const navigation: any = useNavigation();
@@ -9,13 +10,25 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    // On mount, check if already logged in
+    (async () => {
+      const token = await storage.getItem('token');
+      if (token) {
+        navigation.replace('MainTabs');
+      }
+    })();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password.');
+      setErrorMsg('Please enter both email and password.');
       return;
     }
     setLoading(true);
+    setErrorMsg(null);
     try {
       const response = await fetch('http://localhost:4000/api/auth/login', {
         method: 'POST',
@@ -24,16 +37,15 @@ export default function SignInScreen() {
       });
       const data = await response.json();
       if (data.success) {
-        // Save userId and token to AsyncStorage
-        await AsyncStorage.setItem('userId', data.userId);
-        await AsyncStorage.setItem('token', data.token);
-        // Navigate to main page
+        // Save userId and token to storage
+        await storage.setItem('userId', data.userId);
+        await storage.setItem('token', data.token);
         navigation.replace('MainTabs');
       } else {
-        Alert.alert('Login Failed', data.error || 'Invalid credentials');
+        setErrorMsg(data.error || 'Invalid credentials');
       }
     } catch (err) {
-      Alert.alert('Error', 'Network error, please try again.');
+      setErrorMsg('Network error, please try again.');
     } finally {
       setLoading(false);
     }
@@ -89,6 +101,9 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </View>
         {/* Next button */}
+        {errorMsg && (
+          <Text style={{ color: '#e74c3c', textAlign: 'center', marginBottom: 8 }}>{errorMsg}</Text>
+        )}
         <TouchableOpacity style={styles.nextButton} onPress={handleLogin} disabled={loading}>
           <Text style={styles.nextButtonText}>{loading ? 'Signing in...' : 'Next'}</Text>
         </TouchableOpacity>
@@ -102,13 +117,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f7f3ec',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingHorizontal: 16, // reduced for mobile
+    paddingTop: 16, // reduced for mobile
+    justifyContent: 'center', // center content vertically
   },
   backButton: {
     position: 'absolute',
-    left: 24,
-    top: 24,
+    left: 16, // reduced for mobile
+    top: 16, // reduced for mobile
     zIndex: 10,
   },
   backButtonText: {
@@ -120,26 +136,26 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#2D1C1C',
-    marginTop: 32,
-    marginBottom: 16,
+    marginTop: 24,
+    marginBottom: 12,
     alignSelf: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26, // slightly smaller for mobile
     fontWeight: 'bold',
     color: '#2D1C1C',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#5C4B4B',
-    marginBottom: 24,
+    marginBottom: 18,
     textAlign: 'center',
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 18,
   },
   input: {
     backgroundColor: '#fff',
@@ -148,7 +164,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     fontSize: 16,
     color: '#2D1C1C',
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 2,
@@ -159,7 +175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 14,
-    marginBottom: 8,
+    marginBottom: 6,
     shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 2,
@@ -171,7 +187,7 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   nextButton: {
     backgroundColor: '#2D1C1C',
@@ -179,7 +195,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     width: '100%',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.10,
     shadowRadius: 4,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import { storage } from './utils/storage';
 
 export default function HomeScreen() {
   const navigation: any = useNavigation();
@@ -40,6 +41,16 @@ export default function HomeScreen() {
               </Text>
               <Text style={styles.greetingText}>Hola, ¿cómo estás hoy?</Text>
             </View>
+            {/* Logout button */}
+            <TouchableOpacity
+              style={{ marginLeft: 'auto', padding: 8 }}
+              onPress={async () => {
+                await storage.logout();
+                navigation.replace('SignInScreen');
+              }}
+            >
+              <Text style={{ color: '#F85C5C', fontWeight: 'bold', fontSize: 16 }}>Logout</Text>
+            </TouchableOpacity>
           </View>
           {/* Balance Card */}
           <View style={styles.balanceCard}>
@@ -96,7 +107,9 @@ export default function HomeScreen() {
         </View>
 
         {/* Daily Quiz */}
-        <Text style={styles.sectionTitle}>Daily Quiz</Text>
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Daily Quiz</Text>
+        </View>
         <View style={styles.quizCard}>
           <Text style={styles.quizTitle}>Use 3 new words in a sentence</Text>
           <View style={styles.quizWordsRow}>
@@ -288,6 +301,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2D1C1C',
+    marginHorizontal: 20, // align with other sections
   },
   seeAll: {
     color: '#A59C9C',
