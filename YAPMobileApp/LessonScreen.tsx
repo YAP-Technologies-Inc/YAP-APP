@@ -230,7 +230,7 @@ export default function LessonScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:4000/api/pronunciation-assessment-upload', {
+      const res = await fetch('https://yapapp.io/api/pronunciation-assessment-upload', {
         method: 'POST',
         body: formData,
       });
@@ -289,7 +289,7 @@ export default function LessonScreen() {
         setPronunciationResult('No score returned');
       }
       if (result.wavUrl) {
-        setWavUrl(`http://localhost:4000${result.wavUrl}`);
+        setWavUrl(`https://yapapp.io${result.wavUrl}`);
         setAudioError(false); // Hide error if assessment succeeds
       }
     } catch (e: any) {

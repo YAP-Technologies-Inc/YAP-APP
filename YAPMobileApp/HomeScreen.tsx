@@ -15,7 +15,7 @@ export default function HomeScreen() {
       try {
         const userId = await AsyncStorage.getItem('userId');
         if (!userId) return;
-        const res = await fetch(`http://localhost:4000/api/profile/${userId}`);
+        const res = await fetch(`https://yapapp.io/api/profile/${userId}`);
         if (!res.ok) throw new Error('Failed to fetch profile');
         const data = await res.json();
         setProfile(data);

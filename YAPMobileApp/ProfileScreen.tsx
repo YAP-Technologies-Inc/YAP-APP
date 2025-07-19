@@ -25,7 +25,7 @@ export default function ProfileScreen() {
         }
         setUserId(storedUserId);
         // Fetch user profile
-        const profileRes = await fetch(`http://localhost:4000/api/profile/${storedUserId}`);
+        const profileRes = await fetch(`https://yapapp.io/api/profile/${storedUserId}`);
         if (!profileRes.ok) {
           const text = await profileRes.text();
           console.log('Profile fetch failed:', profileRes.status, text);
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
   // Function to handle buying $YAP
   const handleBuyYAP = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/create-payment-session', {
+      const response = await fetch('https://yapapp.io/api/create-payment-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: 1000 }), // Example: buy 1000 $YAP
