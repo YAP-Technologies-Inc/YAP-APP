@@ -12,6 +12,7 @@ import StreakScreen from './StreakScreen';
 import MainTabs from './MainTabs';
 import SignInScreen from './SignInScreen';
 import LessonScreen from './LessonScreen';
+import AITeacherScreen from './AITeacherScreen';
 
 const Stack = createStackNavigator();
 
@@ -28,7 +29,7 @@ export default function App() {
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="SignInScreen" component={SignInScreen} />
         <Stack.Screen name="LessonScreen" component={LessonScreen} />
-        <Stack.Screen name="HomeScreen" component={HomeScreen} />
+        <Stack.Screen name="AITeacherScreen" component={AITeacherScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

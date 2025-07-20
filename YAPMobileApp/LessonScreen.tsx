@@ -569,7 +569,7 @@ export default function LessonScreen() {
         {page === totalPages - 1 && (
           <TouchableOpacity
             style={styles.finishButton}
-            onPress={() => navigation.navigate('HomeScreen')}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
           >
             <Text style={styles.finishButtonText}>Finish Lesson</Text>
           </TouchableOpacity>

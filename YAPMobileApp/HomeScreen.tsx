@@ -129,6 +129,14 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* AI Spanish Teacher Button */}
+        <TouchableOpacity
+          style={styles.aiTeacherButton}
+          onPress={() => navigation.navigate('AITeacherScreen')}
+        >
+          <Text style={styles.aiTeacherButtonText}>Talk To AI Spanish Teacher</Text>
+        </TouchableOpacity>
+
         {/* Bottom padding for tab bar */}
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -409,5 +417,23 @@ const styles = StyleSheet.create({
     color: '#2D1C1C',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  aiTeacherButton: {
+    backgroundColor: '#FFD166',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  aiTeacherButtonText: {
+    color: '#2D1C1C',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
